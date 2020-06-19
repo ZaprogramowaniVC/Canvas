@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Windows;
@@ -23,13 +24,17 @@ namespace Canvas
     {
         Rectangle mainRectangle;
         Random randomGenerator = new Random();
+        DispatcherTimer pointTimer;
+        List<Ellipse> pointList;
+
 
         public MainWindow()
         {
             InitializeComponent();
 
-            mainRectangle = AddRectangle(390, 390);
+            pointList = new List<Ellipse>();
 
+            mainRectangle = AddRectangle(390, 390);
            
         }
 
@@ -75,18 +80,22 @@ namespace Canvas
             {
                 case Key.A:
                 case Key.Left:
+                    if(actualPositionX >= 10)
                     System.Windows.Controls.Canvas.SetLeft(rect, actualPositionX - 10);
                     break;
                 case Key.W:
                 case Key.Up:
+                    if (actualPositionY >= 10)
                     System.Windows.Controls.Canvas.SetTop(rect, actualPositionY - 10);
                     break;
                 case Key.D:
                 case Key.Right:
+                    if(actualPositionX <= 760)
                     System.Windows.Controls.Canvas.SetLeft(rect, actualPositionX + 10);
                     break;
                 case Key.S:
                 case Key.Down:
+                    if(actualPositionY <= 730)
                     System.Windows.Controls.Canvas.SetTop(rect, actualPositionY + 10);
                     break;
                 
@@ -99,22 +108,50 @@ namespace Canvas
         private void MainCanvas_KeyDown(object sender, KeyEventArgs e)
         {
             MoveRectangle(mainRectangle, e.Key);
+            var test = pointList.Where(p => Intersect(mainRectangle, p));
+            if (test != null)
+            {
+                foreach (var item in test)
+                {
+                    MainCanvas.Children.Remove(item);
+                }
+            }
         }
 
         private void MainCanvas_Loaded(object sender, RoutedEventArgs e)
         {
             Keyboard.Focus(MainCanvas);
 
-            DispatcherTimer timer = new DispatcherTimer(new TimeSpan(5000000),DispatcherPriority.Normal,Timer_Elapsed,Dispatcher.CurrentDispatcher);
-            timer.Start();
+            pointTimer = new DispatcherTimer(new TimeSpan(0, 0, 2), DispatcherPriority.Normal, Timer_Elapsed, Dispatcher.CurrentDispatcher);
+            pointTimer.Start();
         }
 
         private void Timer_Elapsed(object sender, EventArgs e)
         {
-            var x = randomGenerator.Next(0, 780);
-            var y = randomGenerator.Next(0, 780);
+            if (pointList.Count >= 3)
+            {
+                pointTimer.Stop();
+                return;
+            }
 
-           AddCircle(x, y);
+            var x = randomGenerator.Next(0, 760);
+            var y = randomGenerator.Next(0, 730);
+
+            pointList.Add(AddCircle(x, y));
+        }
+
+        private bool Intersect(Rectangle rect, Ellipse ellipse)
+        {
+            var ellipseXPosition = System.Windows.Controls.Canvas.GetLeft(ellipse);
+            var ellipseYPosition = System.Windows.Controls.Canvas.GetTop(ellipse);
+            
+            var rectangleXPosition = System.Windows.Controls.Canvas.GetLeft(rect);
+            var rectangleYPosition = System.Windows.Controls.Canvas.GetTop(rect);
+
+            if (rectangleXPosition < ellipseXPosition + ellipse.Width && ellipseXPosition < rectangleXPosition + rect.Width)
+            return true;
+
+            return false;
         }
 
     }
